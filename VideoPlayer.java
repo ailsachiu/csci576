@@ -252,102 +252,41 @@ public class VideoPlayer {
    		System.out.println("Video dimensions = " + new_width + "x" + new_height);
    		System.out.println("New wsf = " + new_wsf + ", new hsf = " + new_hsf);
 
+   		double focus = 0.8;						// % of how much to focus
+		double r = focus*(double)HEIGHT/2.0;	// set radius to smallest constraint - in original, it's height
+   		int cx = WIDTH/2;				// x center of original image
+   		int cy = WIDTH/2;				// y center of original image
+   		System.out.println("Original center = " + cx + "," + cy + "; Radius = " + r);
+
+   		double nr = focus*(double)new_height/2.0;	// proportional radius
+   		int ncx = frame_width/2;		// x center of new image
+   		int ncy = frame_height/2;		// y center of new image
+   		System.out.println("New center = " + ncx + "," + cy + "; Radius = " + nr);
+
    		for(int i=0; i < ov.size(); i++) {
    			BufferedImage img = ov.get(i);	// Original frame
    			BufferedImage new_img = new BufferedImage(frame_width,frame_height,BufferedImage.TYPE_INT_RGB); // New frame
    			for(int y=0; y < img.getHeight(); y++) {
    				for(int x=0; x < img.getWidth(); x++) {
    					double x_orig = (double)frame_width/2.0 - (double)new_width/2.0 + x*new_wsf;
-	   				//double x_orig = (double)WIDTH/2.0 + x - (double)new_width/2.0 + x;
 	   				int xf = (int)(Math.floor(x_orig));	// Coordinate in new image
 
 	   				double y_orig = (double)frame_height/2.0 - (double)new_height/2.0 + y*new_hsf;
 	   				int yf = (int)(Math.floor(y_orig));	// Coordinate in new image
 
-	   				int rgb = img.getRGB(x,y);
+
+	   				double distance = Math.sqrt(Math.pow(ncx-xf,2)+Math.pow(ncy-yf,2));
+
+	   				// CENTER FOCUS
+   					if(distance <= nr) {
+   						int rgb = img.getRGB(x,y);
 	   				
-	   				// Check if anti-aliasing is ON
-	   				if(isAntialiased == 1) {
-	   					rgb = avgRGB(x,y,img);
-	   				}
-
-	   				new_img.setRGB(xf,yf,rgb);		// (xf, yf)
-
-	   				if((xf+1) < new_width)
-						new_img.setRGB((xf+1),yf,rgb);	// (xf+1, yf)
-
-	   				if((yf+1) < new_height)
-						new_img.setRGB(xf,(yf+1),rgb);	// (xf, yf+1)
-
-					if((xf+1) < new_width && (yf+1) < new_height)
-						new_img.setRGB(xf+1,yf+1,rgb);	// (xf+1, yf+1)
-   				}
-   			}
-   			nv.add(new_img);
-   		}		
-
-/*
-   		int focus = 0.8;					// % of how much to focus
-		double r = focus*img.getHeight()/2;	// set radius to smallest constraint - in original, it's height
-   		int cx = img.getWidth()/2;			// x center of original image
-   		int cy = img.getHeight()/2;			// y center of original image
-
-   		double nr = focus*new_height/2;		// proportional radius
-   		int ncx = new_width/2;				// x center of new image
-   		int ncy = new_height/2;				// y center of new image
-
-		for(int i=0; i < ov.size(); i++) {
-			BufferedImage img = ov.get(i);	// Original frame
-   			BufferedImage new_img = new BufferedImage(frame_width,frame_height,BufferedImage.TYPE_INT_RGB); // New frame
-   			
-   			for(int y=0; y < img.getHeight(); y++) {
-   				for(int x=0; x < img.getWidth(); x++) {
-   					// Keep aspect ratio of original video
-   					// First, letterbox to find the correct size
-
-   					double x_orig = x*width_scaling_factor;
-	   				int xf = (int)(Math.floor(x_orig));
-
-	   				double y_orig = y*height_scaling_factor;
-	   				int yf = (int)(Math.floor(y_orig));
-
-	   				int rgb = img.getRGB(x,y);
-	   				
-	   				// Check if anti-aliasing is ON
-	   				if(isAntialiased == 1) {
-	   					rgb = avgRGB(x,y,img);
-	   				}
-
-	   				new_img.setRGB(xf,yf,rgb);			// (xf, yf)
-
-	   				if((xf+1) < new_width)
-						new_img.setRGB((xf+1),yf,rgb);	// (xf+1, yf)
-
-	   				if((yf+1) < new_height)
-						new_img.setRGB(xf,(yf+1),rgb);	// (xf, yf+1)
-
-					if((xf+1) < new_width && (yf+1) < new_height)
-						new_img.setRGB(xf+1,yf+1,rgb);	// (xf+1, yf+1)
-
-   					/*
-
-   					double distance = Math.sqrt(Math.pow(cx-x,2)+Math.pow(cy-y,2));
-   					if(distance < r) {
-   						new_img.setRGB(x,y,img.getRGB(x,y));
-   						double x_orig = x*width_scaling_factor;
-		   				int xf = (int)(Math.floor(x_orig));
-
-		   				double y_orig = y*height_scaling_factor;
-		   				int yf = (int)(Math.floor(y_orig));
-
-		   				int rgb = img.getRGB(x,y);
-		   				
 		   				// Check if anti-aliasing is ON
 		   				if(isAntialiased == 1) {
 		   					rgb = avgRGB(x,y,img);
 		   				}
 
-		   				new_img.setRGB(xf,yf,rgb);			// (xf, yf)
+		   				new_img.setRGB(xf,yf,rgb);		// (xf, yf)
 
 		   				if((xf+1) < new_width)
 							new_img.setRGB((xf+1),yf,rgb);	// (xf+1, yf)
@@ -356,23 +295,18 @@ public class VideoPlayer {
 							new_img.setRGB(xf,(yf+1),rgb);	// (xf, yf+1)
 
 						if((xf+1) < new_width && (yf+1) < new_height)
-							new_img.setRGB(xf+1,yf+1,rgb);	// (xf+1, yf+1)
-   					}
-   					else {
-   						new_img.setRGB(x,y,0);
-   					}
-   					*/
+							new_img.setRGB(xf+1,yf+1,rgb);	// (xf+1, yf+1)	
+	   				}
+	   				else {
+	   					
+	   				}
 
-					/*
-						New pixel location in 1:1 circle = original_w/2 + x - new_w/2
-					*
-					
+	   				
    				}
    			}
+   			nv.add(new_img);
+   		} // end of for ov.size();		
 
-   			nv.add(new_img);	// Add to output 
-   		}
-   		*/
 	}
 
 	public int getOutput_frame_rate() {
