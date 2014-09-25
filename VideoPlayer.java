@@ -226,6 +226,7 @@ public class VideoPlayer {
    		System.out.println("Frame dimensions = " + frame_width + "x" + frame_height);
    		System.out.println("Scaling factors, wsf = " + width_scaling_factor + ", hsf = " + height_scaling_factor);
 
+   		System.out.println("Scaling input, keeping aspect ratio, to new frame");
    		// Dimensions for same aspect ratio in frame
    		int new_width = WIDTH;
    		int new_height = HEIGHT;
@@ -256,11 +257,12 @@ public class VideoPlayer {
    			BufferedImage new_img = new BufferedImage(frame_width,frame_height,BufferedImage.TYPE_INT_RGB); // New frame
    			for(int y=0; y < img.getHeight(); y++) {
    				for(int x=0; x < img.getWidth(); x++) {
-   					double x_orig = x*new_wsf;
-	   				int xf = (int)(Math.floor(x_orig));
+   					double x_orig = (double)frame_width/2.0 - (double)new_width/2.0 + x*new_wsf;
+	   				//double x_orig = (double)WIDTH/2.0 + x - (double)new_width/2.0 + x;
+	   				int xf = (int)(Math.floor(x_orig));	// Coordinate in new image
 
-	   				double y_orig = y*new_hsf;
-	   				int yf = (int)(Math.floor(y_orig));
+	   				double y_orig = (double)frame_height/2.0 - (double)new_height/2.0 + y*new_hsf;
+	   				int yf = (int)(Math.floor(y_orig));	// Coordinate in new image
 
 	   				int rgb = img.getRGB(x,y);
 	   				
@@ -269,7 +271,7 @@ public class VideoPlayer {
 	   					rgb = avgRGB(x,y,img);
 	   				}
 
-	   				new_img.setRGB(xf,yf,rgb);			// (xf, yf)
+	   				new_img.setRGB(xf,yf,rgb);		// (xf, yf)
 
 	   				if((xf+1) < new_width)
 						new_img.setRGB((xf+1),yf,rgb);	// (xf+1, yf)
