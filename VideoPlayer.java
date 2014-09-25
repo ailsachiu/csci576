@@ -10,7 +10,7 @@ public class VideoPlayer {
 	public static void main(String[] args) {
 	
 		if(args.length < 6) {
-			System.out.print("Use: VideoPlayer filename width height frame_rate isAntialiased\n");
+			System.out.print("Use: VideoPlayer filename width_scale_factor height_scale_factor frame_rate anti-aliasing\n");
 			System.exit(0);
 		}
 
@@ -19,7 +19,8 @@ public class VideoPlayer {
 		double height_scaling_factor = Double.parseDouble(args[2]);	// Scaling factor for height
 		int output_frame_rate = Integer.parseInt(args[3]);			// Output frame rate
    		int isAntialiased = Integer.parseInt(args[4]);				// 1 = anti-aliasing turned on; 0 = off
-   		
+   		int option = Integer.parseInt(args[5]);						// 0 = default, 1 = analysis of aspect ratio
+
    		// Standard video dimensions
    		int width = 352;
    		int height = 288;
@@ -82,16 +83,99 @@ public class VideoPlayer {
 	   				double y_orig = y*height_scaling_factor;
 	   				int yf = (int)(Math.floor(y_orig));
 
-	   				new_img.setRGB(xf,yf,img.getRGB(x,y));			// (xf, yf)
+	   				int rgb = img.getRGB(x,y);
+	   				// Check if anti-aliasing is ON
+	   				if(isAntialiased == 1) {
+	   					//rgb = VideoPlayer.avgRGB(x,y,img);
+
+	   					Color c = new Color(img.getRGB(x,y));
+						int rsum = c.getRed();
+						int	gsum = c.getGreen();
+						int	bsum = c.getBlue();
+	   					int count = 1;
+
+						int w = img.getWidth();
+						int h = img.getHeight();
+
+						// First row
+						if(x-1 > -1 && y-1 > -1) {
+							c = new Color(img.getRGB(x-1,y-1));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+						if(y-1 > -1) {
+							c = new Color(img.getRGB(x,y-1));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+						if(x+1 < w && y-1 > -1) {
+							c = new Color(img.getRGB(x+1,y-1));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+
+						// Second row
+						if(x-1 > -1) {
+							c = new Color(img.getRGB(x-1,y));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+						if(x+1 < w) {
+							c = new Color(img.getRGB(x+1,y));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+
+						// Third row
+						if(x-1 > -1 && y+1 < h) {
+							c = new Color(img.getRGB(x-1,y+1));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+						if(y+1 < h) {
+							c = new Color(img.getRGB(x,y+1));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+						if(x+1 < w && y+1 < h) {
+							c = new Color(img.getRGB(x+1,y+1));
+							rsum += c.getRed();
+							gsum += c.getGreen();
+							bsum += c.getBlue();
+							count++;
+						}
+						
+						int a = 0;
+						int r = (int)(rsum / count);
+						int g = (int)(gsum / count);
+						int b = (int)(bsum / count);
+						rgb = ((a << 24) + (r << 16) + (g << 8) + b);
+	   				}
+
+	   				new_img.setRGB(xf,yf,rgb);			// (xf, yf)
 
 	   				if((xf+1) < new_width)
-						new_img.setRGB((xf+1),yf,img.getRGB(x,y));	// (xf+1, yf)
+						new_img.setRGB((xf+1),yf,rgb);	// (xf+1, yf)
 
 	   				if((yf+1) < new_height)
-						new_img.setRGB(xf,(yf+1),img.getRGB(x,y));	// (xf, yf+1)
+						new_img.setRGB(xf,(yf+1),rgb);	// (xf, yf+1)
 
 					if((xf+1) < new_width && (yf+1) < new_height)
-						new_img.setRGB(xf+1,yf+1,img.getRGB(x,y));	// (xf+1, yf+1)
+						new_img.setRGB(xf+1,yf+1,rgb);	// (xf+1, yf+1)
 	   			}
    			}
 
@@ -107,7 +191,8 @@ public class VideoPlayer {
 	    frame.setVisible(true);
 
 	    System.out.println("Size of ov: " + ov.size() + ", size of nv: " + nv.size());
-
+	    //label.setIcon(new ImageIcon(nv.get(150)));
+	
 	    // Set frame rate
 	    for(int i=1; i < nv.size(); i++) {
 	  	    label.setIcon(new ImageIcon(nv.get(i)));
@@ -116,9 +201,17 @@ public class VideoPlayer {
 	    	} catch(InterruptedException e) {
 	    		e.printStackTrace();
 	    	}
-	    }
-	    
+	    }    
 
 	} // End of main
 
+	/**
+	 * Returns int RGB average of 3x3 where pixel (x,y) is in the center for a given BufferedImage img
+	 * Check image boundaries
+	**/
+	/*
+	int avgRGB(int x, int y, BufferedImage img) {
+	
+	}
+*/
 }
