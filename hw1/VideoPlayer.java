@@ -63,7 +63,8 @@ public class VideoPlayer {
 	    	} catch(InterruptedException e) {
 	    		e.printStackTrace();
 	    	}
-	    }    
+	    }
+	    System.out.println("Done");    
 
 	} // End of main
 
@@ -142,6 +143,8 @@ public class VideoPlayer {
 		if(isAntialiased == 1)
 			System.out.println("Anti-aliasing");
 
+
+
 		// Resize the original video
    		for(int i=0; i < ov.size(); i++) {
    			BufferedImage img = ov.get(i);	// Original frame
@@ -149,36 +152,26 @@ public class VideoPlayer {
    			int new_height = (int)(img.getHeight()*height_scaling_factor);
    			BufferedImage new_img = new BufferedImage(new_width,new_height,BufferedImage.TYPE_INT_RGB); // New frame
 
-   			for(int y=0; y < img.getHeight(); y++) {
-	   			for(int x=0; x < img.getWidth(); x++) {
-	   				double x_orig = x*width_scaling_factor;
-	   				int xf = (int)(Math.floor(x_orig));
+   			for(int y=0; y < new_img.getHeight(); y++) {
+	   			for(int x=0; x < new_img.getWidth(); x++) {
+	   				int x_orig = (int)((double)x/width_scaling_factor);
+	   				int y_orig = (int)((double)y/height_scaling_factor);
 
-	   				double y_orig = y*height_scaling_factor;
-	   				int yf = (int)(Math.floor(y_orig));
-
-	   				int rgb = img.getRGB(x,y);
+	   				int rgb = img.getRGB(x_orig,y_orig);
 	   				
 	   				// Check if anti-aliasing is ON
 	   				if(isAntialiased == 1) {
-	   					rgb = avgRGB(x,y,img);
+	   					rgb = avgRGB(x_orig,y_orig,img);
 	   				}
 
-	   				new_img.setRGB(xf,yf,rgb);			// (xf, yf)
+	   				new_img.setRGB(x,y,rgb);
 
-	   				if((xf+1) < new_width)
-						new_img.setRGB((xf+1),yf,rgb);	// (xf+1, yf)
-
-	   				if((yf+1) < new_height)
-						new_img.setRGB(xf,(yf+1),rgb);	// (xf, yf+1)
-
-					if((xf+1) < new_width && (yf+1) < new_height)
-						new_img.setRGB(xf+1,yf+1,rgb);	// (xf+1, yf+1)
 	   			}
    			}
 
    			nv.add(new_img);	// Add to output 
    		}
+   			
 	}
 
 	/**
@@ -223,13 +216,13 @@ public class VideoPlayer {
 
 		int frame_width = (int)(WIDTH*width_scaling_factor);
    		int frame_height = (int)(HEIGHT*height_scaling_factor);
-   		System.out.println("Frame dimensions = " + frame_width + "x" + frame_height);
-   		System.out.println("Scaling factors, wsf = " + width_scaling_factor + ", hsf = " + height_scaling_factor);
+   		//System.out.println("Frame dimensions = " + frame_width + "x" + frame_height);
+   		//System.out.println("Scaling factors, wsf = " + width_scaling_factor + ", hsf = " + height_scaling_factor);
 
-   		System.out.println("Scaling input, keeping aspect ratio, to new frame");
    		// Dimensions for same aspect ratio in frame
    		int new_width = WIDTH;
    		int new_height = HEIGHT;
+/*
    		// Scaling factors for same aspect ratio in frame	
    		double new_wsf = 1.0;
    		double new_hsf = 1.0;
@@ -249,63 +242,164 @@ public class VideoPlayer {
    			new_wsf = (double)new_width / (double)WIDTH;
    			new_hsf = (double)new_height / (double)HEIGHT;
    		}
-   		System.out.println("Video dimensions = " + new_width + "x" + new_height);
-   		System.out.println("New wsf = " + new_wsf + ", new hsf = " + new_hsf);
+*/
+   		//System.out.println("Video dimensions = " + new_width + "x" + new_height);
+   		//System.out.println("New wsf = " + new_wsf + ", new hsf = " + new_hsf);
 
-   		double focus = 0.8;						// % of how much to focus
-		double r = focus*(double)HEIGHT/2.0;	// set radius to smallest constraint - in original, it's height
-   		int cx = WIDTH/2;				// x center of original image
-   		int cy = WIDTH/2;				// y center of original image
-   		System.out.println("Original center = " + cx + "," + cy + "; Radius = " + r);
+   		double ratio = ((double)WIDTH/(double)HEIGHT)/((double)frame_width/(double)frame_height);
+   		// Same aspect ratio, just resize to frame
+   		if(ratio == 1) {
+   			resize();
+   			return;
+   		}
 
-   		double nr = focus*(double)new_height/2.0;	// proportional radius
-   		int ncx = frame_width/2;		// x center of new image
-   		int ncy = frame_height/2;		// y center of new image
-   		System.out.println("New center = " + ncx + "," + cy + "; Radius = " + nr);
+   		if(isAntialiased == 1)
+			System.out.println("Anti-aliasing");
 
    		for(int i=0; i < ov.size(); i++) {
    			BufferedImage img = ov.get(i);	// Original frame
    			BufferedImage new_img = new BufferedImage(frame_width,frame_height,BufferedImage.TYPE_INT_RGB); // New frame
-   			for(int y=0; y < img.getHeight(); y++) {
-   				for(int x=0; x < img.getWidth(); x++) {
-   					double x_orig = (double)frame_width/2.0 - (double)new_width/2.0 + x*new_wsf;
-	   				int xf = (int)(Math.floor(x_orig));	// Coordinate in new image
 
-	   				double y_orig = (double)frame_height/2.0 - (double)new_height/2.0 + y*new_hsf;
-	   				int yf = (int)(Math.floor(y_orig));	// Coordinate in new image
+   			// Scale to % width
+   			if(ratio < 1) {
+   				for(int y=0; y < new_img.getHeight(); y++) {
+   					int w = (int)(0.6*(double)WIDTH);
+			   		double ar = w/HEIGHT;
+			   		int center_width = new_height*w/HEIGHT;
+			   		int side_width = (frame_width - center_width)/2;
 
+   					int lowerbound = side_width;
+   					int upperbound = center_width+side_width;
 
-	   				double distance = Math.sqrt(Math.pow(ncx-xf,2)+Math.pow(ncy-yf,2));
+   					// Render left side with different aspect ratio
+   					for(int x=0; x < lowerbound; x++) {
+   						double wsf = (double)side_width/(0.2*WIDTH);
+	   					int x_orig = (int)((double)x/wsf);
+		   				int y_orig = (int)((double)y/height_scaling_factor);
 
-	   				// CENTER FOCUS
-   					if(distance <= nr) {
-   						int rgb = img.getRGB(x,y);
-	   				
+		   				int rgb = img.getRGB(x_orig,y_orig);
+		   				
 		   				// Check if anti-aliasing is ON
 		   				if(isAntialiased == 1) {
-		   					rgb = avgRGB(x,y,img);
+		   					rgb = avgRGB(x_orig,y_orig,img);
 		   				}
 
-		   				new_img.setRGB(xf,yf,rgb);		// (xf, yf)
+		   				new_img.setRGB(x,y,rgb);
+   					}
 
-		   				if((xf+1) < new_width)
-							new_img.setRGB((xf+1),yf,rgb);	// (xf+1, yf)
-
-		   				if((yf+1) < new_height)
-							new_img.setRGB(xf,(yf+1),rgb);	// (xf, yf+1)
-
-						if((xf+1) < new_width && (yf+1) < new_height)
-							new_img.setRGB(xf+1,yf+1,rgb);	// (xf+1, yf+1)	
-	   				}
-	   				else {
+   					// Keep 60% of original width in focus/same aspect ratio
+	   				BufferedImage center = img.getSubimage((int)(0.2*WIDTH), 0, (int)(0.6*(double)WIDTH),HEIGHT);
+	   				for(int x=0; x < center_width; x++) {
 	   					
-	   				}
+	   					double wsf = (double)center_width/(0.6*WIDTH);
+	   					int x_orig = (int)((double)x/wsf);
+		   				int y_orig = (int)((double)y/height_scaling_factor);
 
+		   				int rgb = center.getRGB(x_orig,y_orig);
+		   				
+		   				// Check if anti-aliasing is ON
+		   				if(isAntialiased == 1) {
+		   					rgb = avgRGB(x_orig,y_orig,center);
+		   				}
+
+		   				new_img.setRGB(x+lowerbound,y,rgb);
+	   				}
 	   				
-   				}
+	   				// Render right side with different aspect ratio
+	   				BufferedImage right = img.getSubimage((int)(0.8*WIDTH), 0, (int)(0.2*WIDTH),HEIGHT);
+	   				for(int x=0; x < lowerbound; x++) {
+	   					double wsf = (double)side_width/(0.2*WIDTH);
+	   					int x_orig = (int)((double)x/wsf);
+		   				int y_orig = (int)((double)y/height_scaling_factor);
+
+		   				if(x_orig >= right.getWidth())
+		   					continue;
+
+		   				int rgb = right.getRGB(x_orig,y_orig);
+		   				
+		   				// Check if anti-aliasing is ON
+		   				if(isAntialiased == 1) {
+		   					rgb = avgRGB(x_orig,y_orig,right);
+		   				}
+		   				if(x+upperbound >= new_img.getWidth() || y >= new_img.getHeight())
+		   					continue;
+
+		   				new_img.setRGB(x+upperbound,y,rgb);
+	   				}
+   				} // end of ratio < 1
    			}
+
+   			// Scale to % height
+   			else if(ratio > 1) {
+   				for(int x=0; x < new_img.getWidth(); x++) {
+   					int h = (int)(0.6*(double)HEIGHT);
+			   		double ar = WIDTH/h;
+			   		int center_height = new_width*h/WIDTH;
+			   		int side_height = (frame_height - center_height)/2;
+
+   					int lowerbound = side_height;
+   					int upperbound = center_height+side_height;
+
+   					// Render top with different aspect ratio
+   					for(int y=0; y < lowerbound; y++) {
+   						double hsf = (double)side_height/(0.2*HEIGHT);
+	   					int x_orig = (int)((double)x/width_scaling_factor);
+		   				int y_orig = (int)((double)y/hsf);
+
+		   				int rgb = img.getRGB(x_orig,y_orig);
+		   				
+		   				// Check if anti-aliasing is ON
+		   				if(isAntialiased == 1) {
+		   					rgb = avgRGB(x_orig,y_orig,img);
+		   				}
+
+		   				new_img.setRGB(x,y,rgb);
+   					}
+
+   					// Keep 60% of original height in focus/same aspect ratio
+	   				BufferedImage center = img.getSubimage(0,(int)(0.2*HEIGHT),WIDTH,(int)(0.6*HEIGHT));
+	   				for(int y=0; y < center_height; y++) {			
+	   					double hsf = (double)center_height/(0.6*HEIGHT);
+	   					int x_orig = (int)((double)x/width_scaling_factor);
+		   				int y_orig = (int)((double)y/hsf);
+
+		   				int rgb = center.getRGB(x_orig,y_orig);
+		   				
+		   				// Check if anti-aliasing is ON
+		   				if(isAntialiased == 1) {
+		   					rgb = avgRGB(x_orig,y_orig,center);
+		   				}
+
+		   				new_img.setRGB(x,y+lowerbound,rgb);
+	   				}
+	   				
+	   				// Render bottom with different aspect ratio
+	   				BufferedImage bottom = img.getSubimage(0,(int)(0.8*HEIGHT),WIDTH,(int)(0.2*HEIGHT));
+	   				for(int y=0; y < lowerbound; y++) {
+	   					double hsf = (double)side_height/(0.2*HEIGHT);
+	   					int x_orig = (int)((double)x/width_scaling_factor);
+		   				int y_orig = (int)((double)y/hsf);
+
+		   				if(y_orig >= bottom.getHeight())
+		   					continue;
+
+		   				int rgb = bottom.getRGB(x_orig,y_orig);
+		   				
+		   				// Check if anti-aliasing is ON
+		   				if(isAntialiased == 1) {
+		   					rgb = avgRGB(x_orig,y_orig,bottom);
+		   				}
+		   				if(x >= new_img.getWidth() || y+upperbound >= new_img.getHeight())
+		   					continue;
+
+		   				new_img.setRGB(x,y+upperbound,rgb);
+	   				}
+   				} // end of for loop
+
+   			} // end of ratio > 1
+
    			nv.add(new_img);
-   		} // end of for ov.size();		
+   		}
 
 	}
 
